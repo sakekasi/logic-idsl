@@ -1,0 +1,61 @@
+syntax
+======
+
+$: a ruleset
+
+$('identifier')(terms...): a clause
+$('identifier')(terms...).if( : a rule
+  clauses...
+)
+
+$.rule(
+  (a list of clauses or rules)
+)
+
+$.query(
+  a set of clauses
+)
+
+//AND
+(
+  clause,
+  clause,
+  clause,
+  ...
+)
+
+//AND
+(
+  and(
+    clause,
+    clause,
+    clause,
+    ....
+  )
+)
+
+//AND
+(
+  clause.and
+  clause.and
+  clause.and
+  ...
+)
+
+//OR
+(
+  or(
+    clause,
+    clause,
+    clause,
+    ...
+  )
+)
+
+//OR
+(
+  clause.or
+  clause.or
+  clause.or
+  ...
+)
