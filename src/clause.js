@@ -1,26 +1,45 @@
-export default function Clause(ruleSet, identifier, terms){
-  let me = {};
-  // function(identifier){
-  //   return ruleSet(identifier);
-  // }
+import Rule from './rule.js';
 
-  me.if = function(...clauses){
-    //TODO: do some error checking here
-    return new Rule(ruleSet, me, clauses);
-  }
+export default class Clause{
+    //TODO: support chaining with .and and .or
+    ruleSet: RuleSet;
+    identifier: string;
+    terms: Array<any>;
 
-  me.makeCopyWithFreshVarNames = function(delta){
-    let newTerms = [];
-
-    for(let term of this.terms){
-        let newTerm = term.makeCopyWithFreshVarNames(delta);
-        newArgs.push(newTerm);
+    constructor(ruleSet, identifier, terms){
+      this.ruleSet = ruleSet;
+      this.identifier = identifier;
+      this.terms = terms;
     }
-    return new Clause(ruleset, this.identifier, newTerms);
-  }
 
-  //TODO: support chaining with .and and .or
+    if(...clauses){
+      //TODO: do some error checking here
+      return new Rule(this.ruleSet, this, clauses);
+    }
 
-  me.identifier = identifier;
-  me.terms = terms;
+    makeCopyWithFreshVarNames(delta){
+      let newTerms = [];
+
+      for(let term of this.terms){
+          let newTerm = term.makeCopyWithFreshVarNames(delta);
+          newTerms.push(newTerm);
+      }
+      return new Clause(this.ruleSet, this.identifier, newTerms);
+    }
+
+    rewrite(subst){
+      return new Clause(this.ruleSet, this.identifier, this.terms.map(a => a.rewrite(subst)));
+    }
+
+    equals(other){
+      return (other instanceof Clause) &&
+        this.identifier === other.identifier &&
+        this.terms.reduce((a,b,i) => a && (b.equals(other.terms[i])), true);
+    }
+
+    toString(){
+      return `${this.identifier}(${
+        this.terms.join(',')
+      })`;
+    }
 }

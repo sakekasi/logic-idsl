@@ -11,6 +11,23 @@ export class Var {
     }
     return new Var(delta[this.identifier]);
   }
+
+  rewrite(subst){
+    if(subst.has(this.identifier)){
+        return subst.get(this.identifier);
+    } else {
+        return this;
+    }
+  }
+
+  equals(other){
+    return (other instanceof Var) &&
+        this.identifier === other.identifier;
+  }
+
+  toString(){
+    return `v(${this.identifier})`;
+  }
 }
 
 export function v(identifier: string): Var{
@@ -26,6 +43,19 @@ export class Atom {
 
   makeCopyWithFreshVarNames(){
     return this;
+  }
+
+  rewrite(){
+    return this;
+  }
+
+  equals(other){
+    return (other instanceof Atom) && 
+        this.identifier === other.identifier;
+  }
+
+  toString(){
+    return `a(${this.identifier})`;
   }
 }
 

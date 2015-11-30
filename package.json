@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --compilers js:babel-core/register"
   },
   "repository": {
     "type": "git",
@@ -16,9 +16,21 @@
     "url": "https://github.com/sakekasi/logic-idsl/issues"
   },
   "homepage": "https://github.com/sakekasi/logic-idsl#readme",
+  "babel": {
+    "presets": [
+      "es2015",
+      "react"
+    ],
+    "plugins": [
+      "transform-class-properties"
+    ]
+  },
   "devDependencies": {
     "babel": "^6.1.18",
     "babel-core": "^6.2.1",
+    "babel-loader": "^6.2.0",
+    "babel-plugin-transform-class-properties": "^6.2.2",
+    "babel-polyfill": "^6.2.0",
     "babel-preset-es2015": "^6.1.18",
     "babel-preset-react": "^6.1.18",
     "babel-runtime": "^6.2.0",
@@ -27,6 +39,11 @@
     "browserify": "^12.0.1",
     "browserify-resolutions": "^1.0.6",
     "gulp": "^3.9.0",
-    "gulp-concat": "^2.6.0"
+    "gulp-concat": "^2.6.0",
+    "webpack": "^1.12.9",
+    "webpack-dev-server": "^1.14.0"
+  },
+  "dependencies": {
+    "immutable": "^3.7.5"
   }
 }

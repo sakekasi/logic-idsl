@@ -1,22 +1,27 @@
-export default function RuleSet() Function {
+import Clause from './clause.js';
+import Rule from './rule.js';
+import SubstGenerator from './substgenerator.js';
+
+export default function RuleSet(): Function {
   let me = function(identifier){
-    if(!this.ruleHeads.has(identifier)){
-      this.add(identifier);
+    if(!me.ruleHeads.has(identifier)){
+      me.ruleHeads.add(identifier);
     }
 
     return function(...terms){
-      return new Clause(me, identifier, ...terms);
+      return new Clause(me, identifier, terms);
     }
   };
 
   me.rule = function(...rules: Array<Rule | Clause>): void{
-    rules.forEach(rule => {
-      if(!(rule instanceof Rule || rule instanceof Clause)){
-        throw new Error("RuleSet.rule() only accepts Rules and Clauses");
-      }
-    });
+    // rules.forEach(rule => {
+    //   if(!(rule instanceof Rule || rule instanceof Clause)){
+    //     console.error(rule.constructor.toString());
+    //     throw new Error("RuleSet.rule() only accepts Rules and Clauses");
+    //   }
+    // });
 
-    rules.map((rule) => rule instanceof Rule ?
+    rules = rules.map((rule) => rule.hasOwnProperty("head") ?
         rule :
         new Rule(me, rule, [])
     )
