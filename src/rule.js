@@ -20,6 +20,8 @@ export default class Rule{
         let newClause = clause.makeCopyWithFreshVarNames(delta);
         newBody.push(newClause);
     }
+
+    this.ruleSet.nextVarToken = delta.__nextVarToken;
     return new Rule(this.ruleSet, newHead, newBody);
   }
 

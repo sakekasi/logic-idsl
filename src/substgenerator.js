@@ -23,7 +23,11 @@ export default class SubstGenerator{
   }
 
   next(){
-    return this.processor.next();
+    let nextSubst = this.processor.next();
+    if(!nextSubst.done){ //remove intermediate variables
+      nextSubst.value = nextSubst.value.filter((_,k)=> k.charAt(0) !== "_");
+    }
+    return nextSubst;
   }
 }
 
@@ -58,12 +62,12 @@ class ClauseProcessor {
 
     if(this.restGenerator &&
         !(nextSubst = this.restGenerator.next()).done ){
-          return nextSubst.value;
+          return nextSubst;
 
     } else {
       while(this.relevantRules.length > 0){
         let r = this.relevantRules.shift().makeCopyWithFreshVarNames();
-        // console.info(this.clause.toString(), r.head.toString(), this.subst.toString());
+        // console.info("\nGENERATOR:",this.clause.toString(), r.head.toString(), `[${r.body.map(x=>x.toString()).join(',')}]`, this.subst.toString());
 
         //unify r.head
         let solution;
@@ -71,6 +75,7 @@ class ClauseProcessor {
           solution = unify(this.clause, r.head, this.subst);
         } catch(e) {
           if(e.hasOwnProperty("isUnificationError") && e.isUnificationError){//instanceof UnificationError){
+            // console.info("FAIL");
             continue;
           } else {
             throw e;
@@ -89,9 +94,9 @@ class ClauseProcessor {
           }
 
         } else {
-          console.info("candidate:", solution.toString());
+          // console.info("candidate:", solution.toString());
           if(!this.solutionsSeen.find(sbst => equivalentSolns(solution, sbst, this.freeVars))){
-            console.info("accepted");
+            // console.info("accepted");
             this.solutionsSeen.push(solution);
             return {
               value: solution,
@@ -126,7 +131,7 @@ function equivalentSolns(a, b, freeVars){
 };
 
 function unify(term1, term2, subst){
-    console.info("UNIFY", term1.toString(), term2.toString(), subst.toString());
+    // console.info("UNIFY", term1.toString(), term2.toString(), subst.toString());
     if(term1 instanceof Var && term2 instanceof Var){
         if(term1.identifier === term2.identifier){
             return subst;

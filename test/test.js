@@ -127,6 +127,72 @@ describe('Some Programs', function(){
     }
   });
 
+  it('nats', function(){
+    $.rule(
+      $('nat')(a('z')),
+      $('nat')($('s')(v('X'))).if(
+        $('nat')(v('X'))
+      )
+    );
+
+    var it = $.query(
+      $('nat')(v('X'))
+    );
+
+    for(var i = 0; i < 5; i++){
+      var next = it.next();
+      console.log(next);
+    }
+  });
+
+  it('cons and car', function(){
+    $.rule(
+      $('car')(
+        $('cons')(v('X'), v('Y')),
+        v('X')
+      )
+    );
+
+    var it = $.query(
+      $('car')(
+        $('cons')(a('a'), a('nil')),
+        v('X')
+      )
+    );
+
+    var next = it.next();
+    assert(!next.done);
+    while(!next.done){
+      console.log(next);
+      next = it.next();
+    }
+  });
+
+  it('parent', function(){
+    $.rule(
+      $('father')(a('abe'), a('homer')),
+      $('father')(a('homer'), a('bart')),
+      $('father')(a('homer'), a('lisa')),
+      $('father')(a('homer'), a('maggie'))
+    );
+
+    $.rule(
+      $('parent')(v('X'), v('Y')).if(
+        $('father')(v('X'), v('Y'))
+      )
+    );
+
+    var it = $.query(
+      $('parent')(v('X'), v('Y'))
+    );
+
+    var next = it.next();
+    assert(!next.done);
+    while(!next.done){
+      console.log(next);
+      next = it.next();
+    }
+  });
 
   it('grandfather', function(){
     $.rule(
