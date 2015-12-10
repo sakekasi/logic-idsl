@@ -10,6 +10,14 @@ export default class Clause{
       this.ruleSet = ruleSet;
       this.identifier = identifier;
       this.terms = terms;
+
+      var handler = {
+        apply: function(target, thisArg, terms){
+          return new Clause(this.ruleSet, this.identifier, terms)
+        }
+      }
+
+      return new Proxy(this, handler);
     }
 
     if(...clauses){

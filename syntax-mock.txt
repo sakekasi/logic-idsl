@@ -1,0 +1,17 @@
+_.father(_.orville, _.abe)
+_.father(_.abe, _.homer)
+_.father(_.homer, _.bart)
+_.father(_.homer, _.lisa)
+_.father(_.homer, _.maggie)
+
+_.parent(v('X'), v('Y')).if(
+  _.father(v('X'), v('Y'))
+)
+
+_.grandfather(v('X'), v('Y')).if(
+  _.father(v('X'), v('Z')),
+  _.parent(v('Z'), v('Y'))
+)
+
+
+_.grandfather(v('X'), v('Y'))

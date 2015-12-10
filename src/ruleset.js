@@ -13,6 +13,24 @@ export default function RuleSet(): Function {
     }
   };
 
+  me.ruleHeads = new Set();
+  me.rules = [];
+  me.nextVarToken = 0;
+
+  let handler = {
+    get: function(target, identifier){
+      if(target.hasOwnProperty(identifier)){
+        return target.identifier;
+      }
+
+      if(!target.ruleHeads.has(identifier)){
+        target.ruleHeads.add(identifier);
+      }
+
+      return new Clause(target, identifier);
+    }
+  }
+
   me.rule = function(...rules: Array<Rule | Clause>): void{
     // rules.forEach(rule => {
     //   if(!(rule instanceof Rule || rule instanceof Clause)){
@@ -38,9 +56,5 @@ export default function RuleSet(): Function {
     return new SubstGenerator(me, clauses);
   };
 
-  me.ruleHeads = new Set();
-  me.rules = [];
-  me.nextVarToken = 0;
-
-  return me;
+  return new Proxy(me, handler);
 }
