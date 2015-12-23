@@ -1,53 +1,55 @@
 import Rule from './rule.js';
 
-export default class Clause{
-    //TODO: support chaining with .and and .or
-    ruleSet: RuleSet;
-    identifier: string;
-    terms: Array<any>;
+export default function Clause(ruleSet, identifier, terms){
+  let me = function(){};
 
-    constructor(ruleSet, identifier, terms){
-      this.ruleSet = ruleSet;
-      this.identifier = identifier;
-      this.terms = terms;
+  me.ruleSet = ruleSet;
+  me.identifier = identifier;
+  me.terms = terms || [];
+  me.type = "Clause";
 
-      var handler = {
-        apply: function(target, thisArg, terms){
-          return new Clause(this.ruleSet, this.identifier, terms)
-        }
-      }
+  let clause;
 
-      return new Proxy(this, handler);
+  var handler = {
+    apply(target, thisArg, terms){
+      // return new Clause(target.ruleSet, target.identifier, terms);
+      target.terms = terms;
+      return target;
     }
+  }
 
-    if(...clauses){
-      //TODO: do some error checking here
-      return new Rule(this.ruleSet, this, clauses);
+  clause = new Proxy(me, handler);
+
+  me.if = function(...clauses){
+    //TODO: do some error checking here
+    return new Rule(this.ruleSet, this, clauses);
+  }
+
+  me.makeCopyWithFreshVarNames = function(delta){
+    let newTerms = [];
+
+    for(let term of this.terms){
+        let newTerm = term.makeCopyWithFreshVarNames(delta);
+        newTerms.push(newTerm);
     }
+    return new Clause(this.ruleSet, this.identifier, newTerms);
+  };
 
-    makeCopyWithFreshVarNames(delta){
-      let newTerms = [];
+  me.rewrite = function(subst){
+    return new Clause(this.ruleSet, this.identifier, this.terms.map(a => a.rewrite(subst)));
+  };
 
-      for(let term of this.terms){
-          let newTerm = term.makeCopyWithFreshVarNames(delta);
-          newTerms.push(newTerm);
-      }
-      return new Clause(this.ruleSet, this.identifier, newTerms);
-    }
+  me.equals = function(other){
+    return (other.type === "Clause") &&
+      this.identifier === other.identifier &&
+      this.terms.reduce((a,b,i) => a && (b.equals(other.terms[i])), true);
+  }
 
-    rewrite(subst){
-      return new Clause(this.ruleSet, this.identifier, this.terms.map(a => a.rewrite(subst)));
-    }
+  me.toString = function(){
+    return `${this.identifier}(${
+      this.terms.join(',')
+    })`;
+  };
 
-    equals(other){
-      return (other instanceof Clause) &&
-        this.identifier === other.identifier &&
-        this.terms.reduce((a,b,i) => a && (b.equals(other.terms[i])), true);
-    }
-
-    toString(){
-      return `${this.identifier}(${
-        this.terms.join(',')
-      })`;
-    }
+  return clause;
 }

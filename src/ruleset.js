@@ -1,6 +1,9 @@
 import Clause from './clause.js';
 import Rule from './rule.js';
 import SubstGenerator from './substgenerator.js';
+import { Var } from './primitives.js';
+
+//TODO: find some way to identify type of stuff
 
 export default function RuleSet(): Function {
   let me = function(identifier){
@@ -17,44 +20,52 @@ export default function RuleSet(): Function {
   me.rules = [];
   me.nextVarToken = 0;
 
-  let handler = {
-    get: function(target, identifier){
-      if(target.hasOwnProperty(identifier)){
-        return target.identifier;
+  let ruleSet; //proxy for me
+
+  let handler = {//override 'has' for use within with
+    get(target, identifier){
+      if(target[identifier] !== undefined
+         || target.hasOwnProperty(identifier)){
+        return target[identifier];
       }
 
-      if(!target.ruleHeads.has(identifier)){
-        target.ruleHeads.add(identifier);
+      if(typeof identifier !== "string"){
+        return target[identifier]; //shoudl be undefined
+      } else if(identifier.charAt(0) === identifier.charAt(0).toUpperCase()){
+        return new Var(identifier);
+      } else {
+        return new Clause(ruleSet, identifier);
       }
-
-      return new Clause(target, identifier);
     }
   }
 
-  me.rule = function(...rules: Array<Rule | Clause>): void{
-    // rules.forEach(rule => {
-    //   if(!(rule instanceof Rule || rule instanceof Clause)){
-    //     console.error(rule.constructor.toString());
-    //     throw new Error("RuleSet.rule() only accepts Rules and Clauses");
-    //   }
-    // });
+  ruleSet = new Proxy(me, handler);
 
-    rules = rules.map((rule) => rule.hasOwnProperty("head") ?
-        rule :
-        new Rule(me, rule, [])
-    )
-    me.rules = me.rules.concat(rules);
-  };
-
-  me.query = function(...clauses: Array<Clause>){
-    clauses.forEach(clause => {
-      if(!clause instanceof Clause){
-        throw new Error("RuleSet.query() only accepts Clauses");
+  let ruleHandler = {
+    get(target, identifier){
+      if(target[identifier] !== undefined
+         || target.hasOwnProperty(identifier)){
+        return target[identifier];
       }
-    });
 
-    return new SubstGenerator(me, clauses);
+      let newClause = ruleSet[identifier];
+      let newRule = new Rule(ruleSet, newClause, [])
+      me.rules.push(newRule);
+
+      return newRule;
+    }
   };
 
-  return new Proxy(me, handler);
+  me.rule = new Proxy({}, ruleHandler);
+
+  let queryHandler = {
+    get(target, identifier){
+      let newClause = handler.get(me, identifier);
+
+      return new SubstGenerator(ruleSet, newClause);
+    }
+  }
+
+  me.query = new Proxy({}, queryHandler);
+  return ruleSet;
 }

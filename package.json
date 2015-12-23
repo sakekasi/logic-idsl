@@ -40,6 +40,8 @@
     "browserify-resolutions": "^1.0.6",
     "gulp": "^3.9.0",
     "gulp-concat": "^2.6.0",
+    "jquery": "^2.1.4",
+    "mocha": "^2.3.4",
     "webpack": "^1.12.9",
     "webpack-dev-server": "^1.14.0"
   },

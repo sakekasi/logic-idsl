@@ -4,31 +4,70 @@ import Rule from './rule.js';
 import Clause from './clause.js';
 import { Var, Atom } from './primitives.js';
 
-export default class SubstGenerator{
-  ruleSet: RuleSet;
-  q_clauses: Array<Clause>;
-  processor: ClauseProcessor;
+export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Clause>){
+  let me = function(){};
 
-  constructor(ruleSet: RuleSet, q_clauses: List<Clause>){
-    this.ruleSet = ruleSet;
-    this.q_clauses = q_clauses;
-    this.processor = new ClauseProcessor(
-      this.q_clauses[0],
-      this.q_clauses.slice(1),
-      this.ruleSet.rules,
+  me.ruleSet = ruleSet;
+  me.q_clauses = [];
+
+  me.addClause = function(clause){
+    me.q_clauses.push(clause);
+    if(me.q_clauses.length === 1){
+      me.makeProcessor();
+    }
+  };
+
+  me.makeProcessor = function(){
+    me.processor = new ClauseProcessor(
+      me.q_clauses[0],
+      me.q_clauses.slice(1),
+      me.ruleSet.rules,
       new Map(),
       [],
-      getFreeVars(this.q_clauses)
+      getFreeVars(me.q_clauses)
     );
   }
 
-  next(){
-    let nextSubst = this.processor.next();
+  me.addTerms = function(terms){
+    let lastClause = me.q_clauses[me.q_clauses.length - 1];
+    lastClause.terms = terms;
+    me.makeProcessor();
+  };
+
+  clauses.forEach((clause) =>
+    me.addClause(clause)
+  );
+
+  let substGenerator;
+
+  let handler = {
+    get(target, identifier){
+      if(target[identifier] !== undefined
+         || target.hasOwnProperty(identifier)){
+        return target[identifier];
+      }
+
+      target.addClause(target.ruleSet[identifier]);
+      return substGenerator;
+    },
+
+    apply(target, thisArg, terms){
+      target.addTerms(terms);
+      return substGenerator;
+    }
+  };
+
+  substGenerator = new Proxy(me, handler);
+
+  me.next = function(){
+    let nextSubst = me.processor.next();
     if(!nextSubst.done){ //remove intermediate variables
       nextSubst.value = nextSubst.value.filter((_,k)=> k.charAt(0) !== "_");
     }
     return nextSubst;
-  }
+  };
+
+  return substGenerator;
 }
 
 class ClauseProcessor {
@@ -72,7 +111,7 @@ class ClauseProcessor {
         //unify r.head
         let solution;
         try{
-          solution = unify(this.clause, r.head, this.subst);
+          solution = unify(this.clause, r.head, this.subst);//FIX: issue in here
         } catch(e) {
           if(e.hasOwnProperty("isUnificationError") && e.isUnificationError){//instanceof UnificationError){
             // console.info("FAIL");
@@ -132,7 +171,7 @@ function equivalentSolns(a, b, freeVars){
 
 function unify(term1, term2, subst){
     // console.info("UNIFY", term1.toString(), term2.toString(), subst.toString());
-    if(term1 instanceof Var && term2 instanceof Var){
+    if(term1.type === "Var" && term2.type === "Var"){
         if(term1.identifier === term2.identifier){
             return subst;
         } else {
@@ -144,7 +183,7 @@ function unify(term1, term2, subst){
                 return subst.set(term1.identifier, term2);
             }
         }
-    } else if(term1 instanceof Var && (term2 instanceof Clause || term2 instanceof Atom)){
+    } else if(term1.type === "Var" && term2.type === "Clause"){
         if(subst.has(term1.identifier)){ //should be unifying
             return unify(subst.get(term1.identifier), term2, subst);
         } else {
@@ -163,9 +202,9 @@ function unify(term1, term2, subst){
 
             return subst;
         }
-    } else if(term2 instanceof Var && (term1 instanceof Clause || term1 instanceof Atom)){
+    } else if(term2.type === "Var" && term1.type === "Clause"){
       return unify(term2, term1, subst);
-    } else if(term1 instanceof Clause && term2 instanceof Clause){
+    } else if(term1.type === "Clause" && term2.type === "Clause"){
         if(term1.identifier === term2.identifier){
             for(var i = 0; i< term1.terms.length; i++){
                 subst = unify(term1.terms[i], term2.terms[i].rewrite(subst), subst);
@@ -174,17 +213,20 @@ function unify(term1, term2, subst){
         } else {
             throw new UnificationError("unification failed");
         }
-    } else if(term1 instanceof Atom && term2 instanceof Atom){
-      if(term1.identifier === term2.identifier){
-        return subst;
-      } else {
-        throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
-      }
-    } else if( term1 instanceof Atom && term2 instanceof Clause ) {
-      throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
-    } else if( term1 instanceof Clause && term2 instanceof Atom ) {
-      throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
+    } else {
+      throw new UnificationError(`unification failed. unknown type combination ${term1.type}, ${term2.type}`);
     }
+    // else if(term1 instanceof Atom && term2 instanceof Atom){
+    //   if(term1.identifier === term2.identifier){
+    //     return subst;
+    //   } else {
+    //     throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
+    //   }
+    // } else if( term1 instanceof Atom && term2.type === "Clause" ) {
+    //   throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
+    // } else if( term1.type === "Clause" && term2 instanceof Atom ) {
+    //   throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
+    // }
 }
 
 class UnificationError extends Error{

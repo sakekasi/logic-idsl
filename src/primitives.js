@@ -1,8 +1,10 @@
 export class Var {
   identifier: string;
+  type: string;
 
   constructor(identifier: string){
     this.identifier = identifier;
+    this.type = "Var";
   }
 
   makeCopyWithFreshVarNames(delta){
@@ -50,7 +52,7 @@ export class Atom {
   }
 
   equals(other){
-    return (other instanceof Atom) && 
+    return (other instanceof Atom) &&
         this.identifier === other.identifier;
   }
 
