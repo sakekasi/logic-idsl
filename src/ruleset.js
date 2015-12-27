@@ -23,6 +23,10 @@ export default function RuleSet(): Function {
   let ruleSet; //proxy for me
 
   let handler = {//override 'has' for use within with
+    has(target, identifier){
+      return true;
+    },
+
     get(target, identifier){
       if(target[identifier] !== undefined
          || target.hasOwnProperty(identifier)){

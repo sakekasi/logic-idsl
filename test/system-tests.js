@@ -145,4 +145,30 @@ describe('Syntactic Operations', function(){
     assert.notStrictEqual(b, a, "b !== a");
   });
 
+  it('works inside a with statement', function(){
+    with(_){
+      rule
+        .person(alice)
+        .person(bob)
+      ;
+    }
+
+    var it = _.query
+      .person(_.X)
+    ;
+
+    var solutions = ["alice()", "bob()"];
+    var i = 0;
+
+    var next = it.next();
+    assert.ok(!next.done, "next isn't done");
+    while(!next.done){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), solutions[i]);
+
+      next = it.next();
+      i++;
+    }
+  });
+
 });
