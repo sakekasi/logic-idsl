@@ -12,6 +12,10 @@ export default function Rule(ruleSet, head, body){
   let rule;
 
   let handler = {
+    has(target, identifier){
+      return true;
+    },
+    
     get(target, identifier){
       if(target[identifier] !== undefined
          || target.hasOwnProperty(identifier)){

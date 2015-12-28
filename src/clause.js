@@ -1,5 +1,7 @@
 import Rule from './rule.js';
 
+import UnificationError from './unificationerror.js';
+
 export default function Clause(ruleSet, identifier, terms){
   let me = function(){};
 
@@ -37,6 +39,26 @@ export default function Clause(ruleSet, identifier, terms){
 
   me.rewrite = function(subst){
     return new Clause(this.ruleSet, this.identifier, this.terms.map(a => a.rewrite(subst)));
+  };
+
+  me.unify = function(other, subst){
+    switch(other.type){
+    case "Var":
+      return other.unify(me, subst);
+
+    case "Clause":
+      if(me.identifier === other.identifier){
+          for(var i = 0; i< me.terms.length; i++){
+              subst = me.terms[i].unify(other.terms[i].rewrite(subst), subst);
+          }
+          return subst;
+      } else {
+          throw new UnificationError("unification failed");
+      }
+
+    default:
+      throw new UnificationError(`unification failed. unknown type combination ${me.type}, ${other.type}`);
+    }
   };
 
   me.equals = function(other){

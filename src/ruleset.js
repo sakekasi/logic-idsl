@@ -1,7 +1,7 @@
 import Clause from './clause.js';
 import Rule from './rule.js';
 import SubstGenerator from './substgenerator.js';
-import { Var } from './primitives.js';
+import { Var } from './var.js';
 
 //TODO: find some way to identify type of stuff
 
@@ -46,6 +46,10 @@ export default function RuleSet(): Function {
   ruleSet = new Proxy(me, handler);
 
   let ruleHandler = {
+    has(target, identifier){
+      return true;
+    },
+
     get(target, identifier){
       if(target[identifier] !== undefined
          || target.hasOwnProperty(identifier)){
@@ -63,6 +67,10 @@ export default function RuleSet(): Function {
   me.rule = new Proxy({}, ruleHandler);
 
   let queryHandler = {
+    has(target,identifier){
+      return true;
+    },
+
     get(target, identifier){
       let newClause = handler.get(me, identifier);
 

@@ -2,7 +2,8 @@ import { Map } from 'immutable';
 
 import Rule from './rule.js';
 import Clause from './clause.js';
-import { Var, Atom } from './primitives.js';
+import { Var, Atom } from './var.js';
+import UnificationError from './unificationerror.js';
 
 export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Clause>){
   let me = function(){};
@@ -111,7 +112,7 @@ class ClauseProcessor {
         //unify r.head
         let solution;
         try{
-          solution = unify(this.clause, r.head, this.subst);//FIX: issue in here
+          solution = this.clause.unify(r.head, this.subst);
         } catch(e) {
           if(e.hasOwnProperty("isUnificationError") && e.isUnificationError){//instanceof UnificationError){
             // console.info("FAIL");
@@ -168,70 +169,3 @@ function equivalentSolns(a, b, freeVars){
         return false;
     }).reduce((a,b) => a && b, true);
 };
-
-function unify(term1, term2, subst){
-    // console.info("UNIFY", term1.toString(), term2.toString(), subst.toString());
-    if(term1.type === "Var" && term2.type === "Var"){
-        if(term1.identifier === term2.identifier){
-            return subst;
-        } else {
-            if(subst.has(term2.identifier) || subst.has(term1.identifier)){
-                var t1 = subst.get(term1.identifier) || term1;
-                var t2 = subst.get(term2.identifier) || term2;
-                return unify(t1, t2, subst);
-            } else {
-                return subst.set(term1.identifier, term2);
-            }
-        }
-    } else if(term1.type === "Var" && term2.type === "Clause"){
-        if(subst.has(term1.identifier)){ //should be unifying
-            return unify(subst.get(term1.identifier), term2, subst);
-        } else {
-            subst = subst.set(term1.identifier, term2.rewrite(subst));
-            var delta = new Map([[term1.identifier, term2.rewrite(subst)]]);
-            while(delta.size !== 0){
-                var newSubst = subst.map(t => t.rewrite(delta)).merge(delta);
-                delta = new Map();
-                for(var k  of newSubst.keys()){
-                    if(!subst.get(k).equals(newSubst.get(k))){
-                        delta = delta.set(k, newSubst.get(k));
-                    }
-                }
-                subst = newSubst;
-            }
-
-            return subst;
-        }
-    } else if(term2.type === "Var" && term1.type === "Clause"){
-      return unify(term2, term1, subst);
-    } else if(term1.type === "Clause" && term2.type === "Clause"){
-        if(term1.identifier === term2.identifier){
-            for(var i = 0; i< term1.terms.length; i++){
-                subst = unify(term1.terms[i], term2.terms[i].rewrite(subst), subst);
-            }
-            return subst;
-        } else {
-            throw new UnificationError("unification failed");
-        }
-    } else {
-      throw new UnificationError(`unification failed. unknown type combination ${term1.type}, ${term2.type}`);
-    }
-    // else if(term1 instanceof Atom && term2 instanceof Atom){
-    //   if(term1.identifier === term2.identifier){
-    //     return subst;
-    //   } else {
-    //     throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
-    //   }
-    // } else if( term1 instanceof Atom && term2.type === "Clause" ) {
-    //   throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
-    // } else if( term1.type === "Clause" && term2 instanceof Atom ) {
-    //   throw new UnificationError(`unification failed. ${term1} !== ${term2}`);
-    // }
-}
-
-class UnificationError extends Error{
-  constructor(msg){
-    super(msg);
-    this.isUnificationError = true;
-  }
-}
