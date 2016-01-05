@@ -229,4 +229,32 @@ describe('Some Programs', function(){
       i++;
     }
   });
+
+  it('unifying numbers', function(){
+    console.log("unifying numbers");
+
+    with(_){
+      rule
+        .isNumber(1)
+        .isNumber(.01)
+        .isNumber(3*3)
+      ;
+    }
+
+    var it = _.query
+      .isNumber(_.X)
+    ;
+
+    var xs = ["1", "0.01", "9"];
+
+    var next = it.next();
+    assert.ok(!next.done, "next isn't done");
+    while(!next.done){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), xs[i]);
+
+      next = it.next();
+      i++;
+    }
+  });
 });

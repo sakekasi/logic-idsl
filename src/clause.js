@@ -1,5 +1,10 @@
 import Rule from './rule.js';
 
+import Number from './number.js';
+import { Var } from './var.js';
+
+var types = [Number, Clause, Var];
+
 import UnificationError from './unificationerror.js';
 
 export default function Clause(ruleSet, identifier, terms){
@@ -15,7 +20,17 @@ export default function Clause(ruleSet, identifier, terms){
   var handler = {
     apply(target, thisArg, terms){
       // return new Clause(target.ruleSet, target.identifier, terms);
-      target.terms = terms;
+      target.terms = terms.map(term => {
+        for(let i = 0; i < types.length; i++){
+          let type = types[i];
+          let sugared = type.sugar(term);
+          if(sugared !== term){
+            return sugared;
+          }
+        }
+        return term;
+      });
+
       return target;
     }
   }
@@ -56,6 +71,9 @@ export default function Clause(ruleSet, identifier, terms){
           throw new UnificationError("unification failed");
       }
 
+    case "Number":
+      return other.unify(me, subst);
+
     default:
       throw new UnificationError(`unification failed. unknown type combination ${me.type}, ${other.type}`);
     }
@@ -68,10 +86,14 @@ export default function Clause(ruleSet, identifier, terms){
   }
 
   me.toString = function(){
-    return `${this.identifier}(${
-      this.terms.join(',')
+    return `${me.identifier}(${
+      me.terms.join(',')
     })`;
   };
 
   return clause;
+}
+
+Clause.sugar = function(unsugared){
+  return unsugared;
 }

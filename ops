@@ -1,0 +1,6 @@
+makeCopyWithFreshVarNames
+rewrite
+unify
+equals
+toString
+evaluate

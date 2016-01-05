@@ -1,0 +1,45 @@
+Expr {
+  Exprs
+    = SeqExpr
+
+  Expr
+    = AddExpr
+
+  SeqExpr
+    = AddExpr SeqExpr  -- seq
+    | AddExpr
+
+  AddExpr
+    = AddExpr "+" MulExpr  -- plus
+    | AddExpr "-" MulExpr  -- minus
+    | MulExpr
+
+  MulExpr
+    = MulExpr "*" ExpExpr  -- times
+    | MulExpr "/" ExpExpr  -- divide
+    | ExpExpr
+
+  ExpExpr
+    = ExpExpr "^" PriExpr  -- exp
+    | PriExpr
+
+  PriExpr
+    = "(" Expr ")"  -- paren
+    | FunExpr
+
+  FunExpr
+    = ident "(" Expr ("," Expr)* ")" --fun
+    | number             -- number
+    | ident              -- ident
+
+  // Lexical rules
+
+  number  (number literal)
+    = "-"? digit+ ("." digit+)?  -- wholeAndFrac
+    | "-"? "." digit+            -- onlyFrac
+
+  ident  (identifier)
+    = letter alnum*
+
+  tokens = (number | ident | _)*
+}

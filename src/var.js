@@ -40,24 +40,8 @@ export class Var {
       }
 
     case "Clause":
-      if(subst.has(this.identifier)){ //should be unifying
-          return subst.get(this.identifier).unify(other, subst);
-      } else {
-          subst = subst.set(this.identifier, other.rewrite(subst));
-          var delta = new Map([[this.identifier, other.rewrite(subst)]]);
-          while(delta.size !== 0){
-              var newSubst = subst.map(t => t.rewrite(delta)).merge(delta);
-              delta = new Map();
-              for(var k  of newSubst.keys()){
-                  if(!subst.get(k).equals(newSubst.get(k))){
-                      delta = delta.set(k, newSubst.get(k));
-                  }
-              }
-              subst = newSubst;
-          }
-
-          return subst;
-      }
+    case "Number":
+      return varUnify(this, other, subst);
 
     default:
       throw new UnificationError(`unification failed. unknown type combination ${this.type}, ${other.type}`);
@@ -74,6 +58,31 @@ export class Var {
   }
 }
 
+Var.sugar = function(unsugared){
+  return unsugared;
+}
+
 export function v(identifier: string): Var{
   return new Var(identifier);
+}
+
+function varUnify(variable, other, subst){
+  if(subst.has(variable.identifier)){ //should be unifying
+      return subst.get(variable.identifier).unify(other, subst);
+  } else {
+      subst = subst.set(variable.identifier, other.rewrite(subst));
+      var delta = new Map([[variable.identifier, other.rewrite(subst)]]);
+      while(delta.size !== 0){
+          var newSubst = subst.map(t => t.rewrite(delta)).merge(delta);
+          delta = new Map();
+          for(var k  of newSubst.keys()){
+              if(!subst.get(k).equals(newSubst.get(k))){
+                  delta = delta.set(k, newSubst.get(k));
+              }
+          }
+          subst = newSubst;
+      }
+
+      return subst;
+  }
 }
