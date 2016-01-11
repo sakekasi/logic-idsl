@@ -171,4 +171,23 @@ describe('Syntactic Operations', function(){
     }
   });
 
+  it('can create a rule with a function body', function(){
+    with(_){
+      rule
+        .true.if(function(){
+          return true;
+        });
+    }
+
+    assert.strictEqual(_.rules.length, 1, "ruleSet has 1 rule");
+
+    assert.strictEqual(_.rules[0].type, "Rule", "interned rule is a Rule");
+    assert.strictEqual(_.rules[0].head.identifier, "true", "interned rule head has identifier 'true'");
+    assert.strictEqual(_.rules[0].head.terms.length, 0, "interned rule head is an Atom");
+
+    assert.typeOf(_.rules[0].body, "function", "rule body is a function");
+    assert.ok(_.rules[0].body(), "calling rule body returns true");
+    assert.strictEqual(_.rules[0].ruleSet, _, "interned rule refers to ruleSet");
+  });
+
 });

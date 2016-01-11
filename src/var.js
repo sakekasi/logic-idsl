@@ -56,6 +56,14 @@ export class Var {
   toString(){
     return `v(${this.identifier})`;
   }
+
+  evaluate(subst){
+    if(subst.has(this.identifier)){
+      return subst.get(this.identifier).evaluate(subst);
+    } else {
+      throw new Error(`uninitialized variable ${this.identifier}`);
+    }
+  }
 }
 
 Var.sugar = function(unsugared){

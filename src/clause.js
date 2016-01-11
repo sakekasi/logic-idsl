@@ -91,6 +91,62 @@ export default function Clause(ruleSet, identifier, terms){
     })`;
   };
 
+  me.evaluate = function(subst){
+    switch(me.identifier){
+      case "plus":
+        if(me.terms.length === 1){
+          return  new Number(+(me.terms[0].evaluate().value));
+        } else if(me.terms.length === 2){
+          return new Number(
+            (me.terms[0].evaluate().value) +
+            (me.terms[1].evaluate().value)
+          );
+        }
+        break;
+
+      case "minus":
+        if(me.terms.length === 1){
+          return  new Number(-(me.terms[0].evaluate().value));
+        } else if(me.terms.length === 2){
+          return new Number(
+            (me.terms[0].evaluate().value) -
+            (me.terms[1].evaluate().value)
+          );
+        }
+        break;
+
+      case "times":
+        if(me.terms.length === 2){
+          return new Number(
+            (me.terms[0].evaluate().value) *
+            (me.terms[1].evaluate().value)
+          );
+        }
+        break;
+
+      case "divide":
+        if(me.terms.length === 2){
+          return new Number(
+            (me.terms[0].evaluate().value) /
+            (me.terms[1].evaluate().value)
+          );
+        }
+        break;
+
+      case "modulo":
+        if(me.terms.length === 2){
+          return new Number(
+            (me.terms[0].evaluate().value) %
+            (me.terms[1].evaluate().value)
+          );
+        }
+        break;
+
+    }
+
+    throw new Error(`cannot evaluate clause ${me.toString()}`);
+  };
+
   return clause;
 }
 

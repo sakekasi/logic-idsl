@@ -3,7 +3,10 @@ import { Map } from 'immutable';
 import Rule from './rule.js';
 import Clause from './clause.js';
 import { Var, Atom } from './var.js';
+import Number from './number.js';
 import UnificationError from './unificationerror.js';
+
+var types = [Number, Clause, Var];
 
 export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Clause>){
   let me = function(){};
@@ -31,7 +34,17 @@ export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Claus
 
   me.addTerms = function(terms){
     let lastClause = me.q_clauses[me.q_clauses.length - 1];
-    lastClause.terms = terms;
+    lastClause.terms = terms.map(term => {
+      for(let i = 0; i < types.length; i++){
+        let type = types[i];
+        let sugared = type.sugar(term);
+        if(sugared !== term){
+          return sugared;
+        }
+      }
+      return term;
+    });
+
     me.makeProcessor();
   };
 
@@ -122,8 +135,39 @@ class ClauseProcessor {
           }
         }
 
-        //push r.body
-        let nextRules = this.rest.concat(r.body);
+        let nextRules = this.rest;
+        let nextSubst = solution;
+
+        if(typeof r.body === "function"){
+          let call = (subst, ...clauses) => {
+            if(clauses.length < 1){
+              throw new Error("Improper use of call. Must pass at least one clause");
+            }
+
+            return new ClauseProcessor(clauses[0], clauses.slice(1),
+                                       this.rules, subst,
+                                       this.solutionsSeen, getFreeVars(clauses));
+          }
+
+          //what if were binding something other than vars?
+          //let bindings = r.head.terms.map(())
+          let bindings = getBindings(r.head.terms, solution);
+          let next = r.body(solution, call, ...bindings);
+
+          if(next === false){
+            continue; //TODO: is this a correct impl of backtrack?
+          } else if( next instanceof Map ){
+            nextSubst = next;
+          } else if(Array.isArray(next)){
+            nextSubst = next.shift();
+            nextRules = nextRules.concat(next);
+          } else if(next !== true){
+            throw new Error("invalid return from native rule implementation");
+          }
+        } else if(Array.isArray(r.body)){
+          nextRules = nextRules.concat(r.body);
+        }
+
         if(nextRules.length > 0){
           this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
                                                     this.rules, solution,
@@ -135,15 +179,16 @@ class ClauseProcessor {
 
         } else {
           // console.info("candidate:", solution.toString());
-          if(!this.solutionsSeen.find(sbst => equivalentSolns(solution, sbst, this.freeVars))){
+          if(!this.solutionsSeen.find(sbst => equivalentSolns(nextSubst, sbst, this.freeVars))){
             // console.info("accepted");
-            this.solutionsSeen.push(solution);
+            this.solutionsSeen.push(nextSubst);
             return {
-              value: solution,
+              value: nextSubst,
               done: false
             };
           }
         }
+
       }
       return {done: true};
     }
@@ -158,6 +203,21 @@ function getFreeVars(query){
         return query.terms.map(q => getFreeVars(q)).reduce((a,b) => a.concat(b), []);
     } else if(query instanceof Var){
         return [query.identifier];
+    }
+};
+
+function getBindings(query, subst){
+    if(query instanceof Array){
+        return query.map(q => getBindings(q, subst)).reduce((a,b) => a.concat(b), []);
+    } else if(query instanceof Clause){
+        return query.terms.map(t => getBindings(t, subst)).reduce((a,b) => a.concat(b), []);
+    } else if(query instanceof Var){
+        let bound = subst.get(query.identifier);
+        if(bound){
+          return [bound];
+        } else { //return the var if unbound
+          return [query];
+        }
     }
 };
 

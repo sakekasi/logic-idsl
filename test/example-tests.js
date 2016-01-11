@@ -1,6 +1,6 @@
 var assert = chai.assert;
 
-describe('Some Programs', function(){
+describe('Vars, Clauses and Numbers', function(){
   var _;
   var i;
 
@@ -52,14 +52,19 @@ describe('Some Programs', function(){
 
   it('alice and bob are people', function(){
     console.log('alice and bob are people');
-    _.rule
-      .person(_.alice)
-      .person(_.bob)
-    ;
 
-    var it = _.query
-      .person(_.X)
-    ;
+    with(_){
+      rule
+        .person(alice)
+        .person(bob)
+      ;
+    }
+
+    var it = (() => {with(_){
+      return query
+        .person(X)
+      ;
+    }})();
 
     var solutions = ["alice()", "bob()"];
 
@@ -78,21 +83,25 @@ describe('Some Programs', function(){
   it('sick and tired', function(){
     console.log('sick and tired');
 
-    _.rule
-      .sick(_.joe)
-      .sick(_.frank)
-      .sick(_.eddie)
-    ;
+    with(_){
+      rule
+        .sick(joe)
+        .sick(frank)
+        .sick(eddie)
+      ;
 
-    _.rule
-      .tired(_.joe)
-      .tired(_.eddie)
-    ;
+      rule
+        .tired(joe)
+        .tired(eddie)
+      ;
+    }
 
-    var it = _.query
-      .sick(_.X)
-      .tired(_.X)
-    ;
+    var it = (() => {with(_){
+      return query
+        .sick(X)
+        .tired(X)
+      ;
+    }})();
 
     var solutions = ["joe()", "eddie()"];
 
@@ -110,16 +119,20 @@ describe('Some Programs', function(){
   it('nats', function(){
     console.log('nats');
 
-    _.rule
-      .nat(_.z)
-      .nat(_.s(_.X)).if(
-        _.nat(_.X)
-      )
-    ;
+    with(_){
+      rule
+        .nat(z)
+        .nat(s(X)).if(
+          nat(X)
+        )
+      ;
+    }
 
-    var it = _.query
-      .nat(_.X)
-    ;
+    var it = (()=>{with(_){
+      return query
+        .nat(X)
+      ;
+    }})();
 
     var solutions = ["z()", "s(z())", "s(s(z()))", "s(s(s(z())))", "s(s(s(s(z()))))"];
 
@@ -134,13 +147,17 @@ describe('Some Programs', function(){
   it('cons and car', function(){
     console.log('cons and car');
 
-    _.rule
-      .car(_.cons(_.X, _.Y), _.X)
-    ;
+    with(_){
+      rule
+        .car(cons(X, Y), X)
+      ;
+    }
 
-    var it = _.query
-      .car(_.cons(_.a, _.nil), _.X)
-    ;
+    var it = (() => {with(_){
+      return query
+        .car(cons(a, nil), X)
+      ;
+    }})();
 
     var solutions = ["a()"];
 
@@ -158,22 +175,26 @@ describe('Some Programs', function(){
   it('parent', function(){
     console.log('parent');
 
-    _.rule
-      .father(_.abe, _.homer)
-      .father(_.homer, _.bart)
-      .father(_.homer, _.lisa)
-      .father(_.homer, _.maggie)
-    ;
+    with(_){
+      rule
+        .father(abe, homer)
+        .father(homer, bart)
+        .father(homer, lisa)
+        .father(homer, maggie)
+      ;
 
-    _.rule
-      .parent(_.X, _.Y).if(
-        _.father(_.X, _.Y)
-      )
-    ;
+      rule
+        .parent(X, Y).if(
+          father(X, Y)
+        )
+      ;
+    }
 
-    var it = _.query
-      .parent(_.X, _.Y)
-    ;
+    var it = (() => {with(_){
+      return query
+        .parent(X, Y)
+      ;
+    }})();
 
     var xs = ["abe()", "homer()", "homer()", "homer()"];
     var ys = ["homer()", "bart()", "lisa()", "maggie()"];
@@ -193,27 +214,32 @@ describe('Some Programs', function(){
   it('grandfather', function(){
     console.log('grandfather');
 
-    _.rule
-      .father(_.orville, _.abe)
-      .father(_.abe, _.homer)
-      .father(_.homer, _.bart)
-      .father(_.homer, _.lisa)
-      .father(_.homer, _.maggie)
-    ;
+    with(_){
+      rule
+        .father(orville, abe)
+        .father(abe, homer)
+        .father(homer, bart)
+        .father(homer, lisa)
+        .father(homer, maggie)
+      ;
 
-    _.rule
-      .parent(_.X, _.Y).if(
-        _.father(_.X, _.Y)
-      )
-      .grandfather(_.X, _.Y).if(
-        _.father(_.X, _.Z),
-        _.parent(_.Z, _.Y)
-      )
-    ;
+      rule
+        .parent(X, Y).if(
+          father(X, Y)
+        )
+        .grandfather(X, Y).if(
+          father(X, Z),
+          parent(Z, Y)
+        )
+      ;
+    }
 
-    var it = _.query
-      .grandfather(_.X, _.Y)
-    ;
+    var it = (() => {with(_){
+      return query
+        .grandfather(X, Y)
+      ;
+    }})();
+
 
     var xs = ["orville()", "abe()", "abe()", "abe()"];
     var ys = ["homer()", "bart()", "lisa()", "maggie()"];
@@ -252,6 +278,165 @@ describe('Some Programs', function(){
     while(!next.done){
       console.log(next.value.toString());
       assert.strictEqual(next.value.get("X").toString(), xs[i]);
+
+      next = it.next();
+      i++;
+    }
+  });
+});
+
+describe("Native Rules", function(){
+  var _;
+  var i;
+
+  beforeEach(function(){
+    _ = new RuleSet();
+    i = 0;
+  });
+
+  it('true', function(){
+    console.log('native true');
+
+    with(_){
+      rule
+        .true.if(function(){
+          return true;
+        })
+    }
+
+    var it = _.query
+      .true;
+
+    var next = it.next();
+    console.log(next.value.toString());
+    assert.ok(!next.done, "next has a value (not done)");
+    assert.strictEqual(next.value.size, 0, "the proposed solution has no substitutions");
+  });
+
+  it('fail', function(){
+    console.log('fail');
+
+    with(_){
+      rule
+        .fail.if(function(){
+          return false;
+        })
+    }
+
+    var it = _.query
+      .fail;
+
+    var next = it.next();
+    console.log(next);
+    assert.ok(next.done, "next has no value (done)");
+  });
+
+  it('evaluate 1 + 2', function(){
+    console.log('evaluate 1 + 2');
+
+    with(_){
+      rule
+        .is(L, EXPR).if(function(subst, cont, L, EXPR){
+          return L.unify(EXPR.evaluate(subst), subst);
+        })
+    }
+
+    var it = (() => {with(_){
+      return query
+        .is(X, plus(1, 2))
+    }})();
+
+    var solutions = ["3"];
+
+    var next = it.next();
+    while(!next.done){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), solutions[i]);
+
+      next = it.next();
+      i++;
+    }
+
+  });
+
+  it('not', function(){
+    console.log('not');
+
+    with(_){
+      rule
+        .not(X).if(function(subst, cont, X){
+          var it = cont(subst, X);
+          var next = it.next();
+          return next.done;
+        })
+      ;
+
+      rule
+        .p
+      ;
+    }
+
+    var it = (() => {with(_){
+      return query
+        .not(q)
+      ;
+    }})();
+
+    var next = it.next();
+    console.log(next.value.toString());
+    assert.ok(!next.done, "next has a value (not done)");
+    assert.strictEqual(next.value.size, 0, "the proposed solution has no substitutions");
+
+    it = (() => {with(_){
+      return query
+        .not(p)
+      ;
+    }})();
+
+    next = it.next();
+    console.log(next);
+    assert.ok(next.done, "next does not have a value (done)");
+  });
+
+  it('square', function(){
+    console.log("square");
+
+    _.rule
+      .square(_.X, _.Y).if(function(subst, cont, X, Y){
+        if(X.type === "Number" && Y.type === "Number"){
+          return X.value * X.value === Y.value;
+        } else if(X.type === "Number" && Y.type === "Var"){
+          return Y.unify(new Number(
+            X.value * X.value
+          ), subst);
+        } else if(X.type === "Var" && Y.type === "Number"){
+          return X.unify(new Number(
+            Math.sqrt(Y.value)
+          ), subst);
+        }
+
+        return false;
+        // } else if(X.type === "Var" && Y.type === "Var"){
+        //   return [
+        //     subst,
+        //     square(, _.Y)
+        //   ]
+        // }
+      })
+    ;
+
+    var it = (() => {with(_){
+      return query
+        .square(2, X)
+      ;
+    }})();
+
+    var solutions = ["4"];
+
+    var next = it.next();
+    while(!next.done){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), solutions[i]);
 
       next = it.next();
       i++;

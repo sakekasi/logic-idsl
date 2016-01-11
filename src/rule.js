@@ -50,20 +50,32 @@ export default function Rule(ruleSet, head, body){
   rule = new Proxy(me, handler);
 
   me.if = function(...clauses){
-    me.body = clauses;
+    if(clauses.length === 1
+       && typeof clauses[0] === "function"
+       && !("type" in clauses[0])){
+      me.body = clauses[0]; //set it to the native function
+    } else {
+      me.body = clauses;
+    }
+
     return me.ruleSet.rule; //allow chaining
   };
 
   me.makeCopyWithFreshVarNames = function(){
-    let newBody = [];
+    let newBody;
     let delta = {
       __nextVarToken: me.ruleSet.nextVarToken
     };
 
     let newHead = me.head.makeCopyWithFreshVarNames(delta);
-    for(let clause of me.body){
-        let newClause = clause.makeCopyWithFreshVarNames(delta);
-        newBody.push(newClause);
+    if(Array.isArray(me.body)){
+      newBody = [];
+      for(let clause of me.body){
+          let newClause = clause.makeCopyWithFreshVarNames(delta);
+          newBody.push(newClause);
+      }
+    } else {
+      newBody = me.body;
     }
 
     me.ruleSet.nextVarToken = delta.__nextVarToken;

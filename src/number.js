@@ -42,6 +42,10 @@ export default function Number(number){
     return me.value.toString();
   }
 
+  me.evaluate = function(){
+    return me;//.value;
+  }
+
   return me;
 }
 
