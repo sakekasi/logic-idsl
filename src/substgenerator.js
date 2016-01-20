@@ -84,8 +84,10 @@ export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Claus
   return substGenerator;
 }
 
+//TODO: this code is really ugly. rework plz
+
 class ClauseProcessor {
-  clause: Clause;
+  currentItem: Clause | Generator;
 
   rest: Array<Clause>;
   restGenerator: ClauseProcessor;
@@ -97,13 +99,17 @@ class ClauseProcessor {
   solutionsSeen: Array<Map<string, any>>;
   freeVars: Array<string>;
 
-  constructor(clause, rest, rules, subst, solutionsSeen, freeVars){
-    this.clause = clause;
+  constructor(currentItem, rest, rules, subst, solutionsSeen, freeVars){
+    this.currentItem = currentItem.type === "Clause" ?
+      currentItem:
+      currentItem(subst); //TODO: this may be a generator
     this.rest = rest;
     this.restGenerator = null;
 
     this.rules = rules;
-    this.relevantRules = rules.filter((r)=> this.clause.identifier === r.head.identifier);//.values();
+    this.relevantRules = this.currentItem.type === "Clause" ?
+      rules.filter((r)=> this.currentItem.identifier === r.head.identifier):
+      null;
 
     this.subst = subst;
     this.solutionsSeen = solutionsSeen;
@@ -118,79 +124,92 @@ class ClauseProcessor {
           return nextSubst;
 
     } else {
-      while(this.relevantRules.length > 0){
-        let r = this.relevantRules.shift().makeCopyWithFreshVarNames();
-        // console.info("\nGENERATOR:",this.clause.toString(), r.head.toString(), `[${r.body.map(x=>x.toString()).join(',')}]`, this.subst.toString());
+      if(this.currentItem.type === "Clause"){
+        while(this.relevantRules.length > 0){
+          let r = this.relevantRules.shift().makeCopyWithFreshVarNames();
+          // console.info("\nGENERATOR:",this.clause.toString(), r.head.toString(), `[${r.body.map(x=>x.toString()).join(',')}]`, this.subst.toString());
 
-        //unify r.head
-        let solution;
-        try{
-          solution = this.clause.unify(r.head, this.subst);
-        } catch(e) {
-          if(e.hasOwnProperty("isUnificationError") && e.isUnificationError){//instanceof UnificationError){
-            // console.info("FAIL");
-            continue;
-          } else {
-            throw e;
+          //unify r.head
+          let solution;
+          try{
+            solution = this.currentItem.unify(r.head, this.subst);
+          } catch(e) {
+            if(e.hasOwnProperty("isUnificationError") && e.isUnificationError){//instanceof UnificationError){
+              // console.info("FAIL");
+              continue;
+            } else {
+              throw e;
+            }
           }
-        }
 
-        let nextRules = this.rest;
-        let nextSubst = solution;
+          let nextRules = this.rest;
+          let nextSubst = solution;
 
-        if(typeof r.body === "function"){
-          let call = (subst, ...clauses) => {
-            if(clauses.length < 1){
-              throw new Error("Improper use of call. Must pass at least one clause");
+          if(typeof r.body === "function"){
+            let call = (subst, ...clauses) => {
+              if(clauses.length < 1){
+                throw new Error("Improper use of call. Must pass at least one clause");
+              }
+
+              return new ClauseProcessor(clauses[0], clauses.slice(1),
+                                         this.rules, subst,
+                                         this.solutionsSeen, getFreeVars(clauses));
             }
 
-            return new ClauseProcessor(clauses[0], clauses.slice(1),
-                                       this.rules, subst,
-                                       this.solutionsSeen, getFreeVars(clauses));
+            //what if were binding something other than vars?
+            //let bindings = r.head.terms.map(())
+            let bindings = getBindings(r.head.terms, solution);
+            let next = r.body(solution, call, ...bindings);
+
+            if(next === false){
+              continue; //TODO: is this a correct impl of backtrack?
+            } else if( next instanceof Map ){
+              nextSubst = next;
+            } else if( next instanceof Generator ||
+                       next.hasOwnProperty("next")){
+              nextRules = nextRules.concat(next);
+            } else if(Array.isArray(next)){
+              nextSubst = next.shift();
+              nextRules = nextRules.concat(next);
+            } else if(next !== true){
+              throw new Error("invalid return from native rule implementation");
+            }
+          } else if(Array.isArray(r.body)){
+            nextRules = nextRules.concat(r.body);
           }
 
-          //what if were binding something other than vars?
-          //let bindings = r.head.terms.map(())
-          let bindings = getBindings(r.head.terms, solution);
-          let next = r.body(solution, call, ...bindings);
+          if(nextRules.length > 0){
+            this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
+                                                      this.rules, solution,
+                                                      this.solutionsSeen, this.freeVars);
+            nextSubst = this.restGenerator.next();
+            if(!nextSubst.done){
+              return nextSubst;
+            }
 
-          if(next === false){
-            continue; //TODO: is this a correct impl of backtrack?
-          } else if( next instanceof Map ){
-            nextSubst = next;
-          } else if(Array.isArray(next)){
-            nextSubst = next.shift();
-            nextRules = nextRules.concat(next);
-          } else if(next !== true){
-            throw new Error("invalid return from native rule implementation");
+          } else {
+            // console.info("candidate:", solution.toString());
+            if(!this.solutionsSeen.find(sbst => equivalentSolns(nextSubst, sbst, this.freeVars))){
+              // console.info("accepted");
+              this.solutionsSeen.push(nextSubst);
+              return {
+                value: nextSubst,
+                done: false
+              };
+            }
           }
-        } else if(Array.isArray(r.body)){
-          nextRules = nextRules.concat(r.body);
+
         }
-
-        if(nextRules.length > 0){
+        return {done: true};
+      } else if(this.currentItem.constructor.name === "GeneratorFunction" ||
+         this.currentItem.constructor.name === "Function"){
+        let solution;
+        while(!(solution = this.currentItem.next()).done){
           this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
-                                                    this.rules, solution,
-                                                    this.solutionsSeen, this.freeVars);
-          nextSubst = this.restGenerator.next();
-          if(!nextSubst.done){
-            return nextSubst;
-          }
-
-        } else {
-          // console.info("candidate:", solution.toString());
-          if(!this.solutionsSeen.find(sbst => equivalentSolns(nextSubst, sbst, this.freeVars))){
-            // console.info("accepted");
-            this.solutionsSeen.push(nextSubst);
-            return {
-              value: nextSubst,
-              done: false
-            };
-          }
+                                                   this.rules, merged,
+                                                   this.solutionsSeen, this.freeVars);
         }
-
       }
-      return {done: true};
     }
   }
 

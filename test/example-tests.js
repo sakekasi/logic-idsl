@@ -413,15 +413,19 @@ describe("Native Rules", function(){
           return X.unify(new Number(
             Math.sqrt(Y.value)
           ), subst);
+        } else if(X.type === "Var" && Y.type === "Var"){
+          return function*(subst){
+            let x = 0;
+            while(true){
+              yield Y.unify(
+                new Number(x*x),
+                X.unify(new Number(x), subst)
+              );
+            }
+          };
         }
 
         return false;
-        // } else if(X.type === "Var" && Y.type === "Var"){
-        //   return [
-        //     subst,
-        //     square(, _.Y)
-        //   ]
-        // }
       })
     ;
 
@@ -436,7 +440,43 @@ describe("Native Rules", function(){
     var next = it.next();
     while(!next.done){
       console.log(next.value.toString());
-      assert.strictEqual(next.value.get("X").toString(), solutions[i]);
+      assert.strictEqual(next.value.get("X").toString(), solutions[i], "square");
+
+      next = it.next();
+      i++;
+    }
+
+    var it = (() => {with(_){
+      return query
+        .square(X, 4)
+      ;
+    }})();
+
+    var solutions = ["2"];
+    i = 0;
+
+    var next = it.next();
+    while(!next.done){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), solutions[i], "sqrt");
+
+      next = it.next();
+      i++;
+    }
+
+    var it = (() => {with(_){
+      return query
+        .square(X, X)
+      ;
+    }})();
+
+    var solutions = ["0", "1"];
+    i = 0;
+
+    var next = it.next();
+    while((!next.done) && (i < 2)){
+      console.log(next.value.toString());
+      assert.strictEqual(next.value.get("X").toString(), solutions[i], "generator");
 
       next = it.next();
       i++;
