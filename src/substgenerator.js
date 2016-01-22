@@ -103,6 +103,11 @@ class ClauseProcessor {
     this.currentItem = currentItem.type === "Clause" ?
       currentItem:
       currentItem(subst); //TODO: this may be a generator
+
+    this.terminationCondition = currentItem.type === "Clause" ?
+      () => this.relevantRules.length === 0:
+      (next) => next.done;
+
     this.rest = rest;
     this.restGenerator = null;
 
@@ -124,8 +129,20 @@ class ClauseProcessor {
           return nextSubst;
 
     } else {
-      if(this.currentItem.type === "Clause"){
-        while(this.relevantRules.length > 0){
+      let nextRules = this.rest;
+      let nextSubst;
+
+      //if the current item is a generator, we just take the solution it generates
+      // given the current substitution as our prospective solution.
+      if(this.currentItem.constructor.name === "Generator" ||
+        ("next" in this.currentItem && this.currentItem.next instanceof Function)){
+        nextSubst = this.currentItem.next();
+      }
+
+      while(!this.terminationCondition(nextSubst)){
+
+        //this section handles the head unificaiton and the body of the clause structure
+        if(this.currentItem.type === "Clause"){
           let r = this.relevantRules.shift().makeCopyWithFreshVarNames();
           // console.info("\nGENERATOR:",this.clause.toString(), r.head.toString(), `[${r.body.map(x=>x.toString()).join(',')}]`, this.subst.toString());
 
@@ -142,8 +159,7 @@ class ClauseProcessor {
             }
           }
 
-          let nextRules = this.rest;
-          let nextSubst = solution;
+          nextSubst = solution;
 
           if(typeof r.body === "function"){
             let call = (subst, ...clauses) => {
@@ -165,8 +181,8 @@ class ClauseProcessor {
               continue; //TODO: is this a correct impl of backtrack?
             } else if( next instanceof Map ){
               nextSubst = next;
-            } else if( next instanceof Generator ||
-                       next.hasOwnProperty("next")){
+            } else if( next.constructor.name === "GeneratorFunction" ||
+                       next instanceof Function){
               nextRules = nextRules.concat(next);
             } else if(Array.isArray(next)){
               nextSubst = next.shift();
@@ -177,40 +193,39 @@ class ClauseProcessor {
           } else if(Array.isArray(r.body)){
             nextRules = nextRules.concat(r.body);
           }
+        } else if (this.currentItem.constructor.name === "Generator" ||
+          ("next" in this.currentItem && this.currentItem.next instanceof Function)){
+            nextSubst = nextSubst.value;
+        }
 
-          if(nextRules.length > 0){
-            this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
-                                                      this.rules, solution,
-                                                      this.solutionsSeen, this.freeVars);
-            nextSubst = this.restGenerator.next();
-            if(!nextSubst.done){
-              return nextSubst;
-            }
-
-          } else {
-            // console.info("candidate:", solution.toString());
-            if(!this.solutionsSeen.find(sbst => equivalentSolns(nextSubst, sbst, this.freeVars))){
-              // console.info("accepted");
-              this.solutionsSeen.push(nextSubst);
-              return {
-                value: nextSubst,
-                done: false
-              };
-            }
+        //logic to see if we passthrough to another generator or if we are at
+        // the end of the generator chain
+        if(nextRules.length > 0){
+          this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
+                                                    this.rules, nextSubst,
+                                                    this.solutionsSeen, this.freeVars);
+          nextSubst = this.restGenerator.next();
+          if(!nextSubst.done){
+            return nextSubst;
           }
 
+        } else {
+          // console.info("candidate:", solution.toString());
+          if(!this.solutionsSeen.find(sbst => equivalentSolns(nextSubst, sbst, this.freeVars))){
+            // console.info("accepted");
+            this.solutionsSeen.push(nextSubst);
+            return {
+              value: nextSubst,
+              done: false
+            };
+          }
         }
-        return {done: true};
-      } else if(this.currentItem.constructor.name === "GeneratorFunction" ||
-         this.currentItem.constructor.name === "Function"){
-        let solution;
-        while(!(solution = this.currentItem.next()).done){
-          this.restGenerator = new ClauseProcessor(nextRules[0], nextRules.slice(1),
-                                                   this.rules, merged,
-                                                   this.solutionsSeen, this.freeVars);
-        }
+
       }
+
     }
+
+    return {done: true};
   }
 
 }

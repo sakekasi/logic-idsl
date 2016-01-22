@@ -1,3 +1,5 @@
+import UnificationError from './unificationerror.js';
+
 export default function Number(number){
   let me = function(){};
 
@@ -24,7 +26,7 @@ export default function Number(number){
       if(me.value === other.value){ //=== may lead to floating point issues
         return subst;
       } else {
-        throw new UnficationError(`unification failed. can't unify ${me.value} and ${other.value}`);
+        throw new UnificationError(`unification failed. can't unify ${me.value} and ${other.value}`);
       }
 
     default:

@@ -415,12 +415,14 @@ describe("Native Rules", function(){
           ), subst);
         } else if(X.type === "Var" && Y.type === "Var"){
           return function*(subst){
-            let x = 0;
+            var x = 0;
             while(true){
               yield Y.unify(
                 new Number(x*x),
                 X.unify(new Number(x), subst)
               );
+
+              x++;
             }
           };
         }
@@ -473,12 +475,11 @@ describe("Native Rules", function(){
     var solutions = ["0", "1"];
     i = 0;
 
-    var next = it.next();
-    while((!next.done) && (i < 2)){
+    var next;
+    while((i < 2) && (!(next = it.next()).done) ){
       console.log(next.value.toString());
       assert.strictEqual(next.value.get("X").toString(), solutions[i], "generator");
 
-      next = it.next();
       i++;
     }
   });
