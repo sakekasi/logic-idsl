@@ -484,3 +484,64 @@ describe("Native Rules", function(){
     }
   });
 });
+
+describe("Lists", function(){
+  var _;
+  var i;
+
+  beforeEach(function(){
+    _ = new RuleSet();
+    i = 0;
+  });
+
+  it('permutation', function(){
+    console.log("permutation");
+
+    _.rule
+      .remove(_.H, [_.H, rest(_.T)], _.T)
+      .remove(_.H, [_.Y, rest(_.T)], [_.Y, rest(_.T1)]).if(
+        _.remove(_.H, _.T, _.T1)
+      )
+    ;
+
+    with(_){
+      rule
+        .insert(I, List, NewList).if(
+          remove(I, NewList, List)
+        )
+      ;
+    }
+
+    _.rule
+      .permutation([], [])
+      .permutation([_.X, rest(_.L1)], _.Perm).if(
+        _.permutation(_.L1, _.L2),
+        _.insert(_.X, _.L2, _.Perm)
+      )
+    ;
+
+    var it = (()=>{with(_){
+      return query
+        .permutation([1,2,3], X)
+      ;
+    }})();
+
+    var answers = new Set([
+      "1,2,3",
+      "1,3,2",
+      "2,1,3",
+      "2,3,1",
+      "3,1,2",
+      "3,2,1"
+    ]);
+
+    var next;
+    while(!((next = it.next()).done)){
+      console.log(next.value.get("X").toString());
+      assert.ok(answers.has(next.value.get("X").toString()), "permutation in answers");
+      answers.delete(next.value.get("X").toString());
+    }
+
+    assert.strictEqual(answers.size, 0, "no elements left in answers");
+  });
+});

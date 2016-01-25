@@ -2,7 +2,8 @@ import Number from './number.js';
 import Clause from './clause.js';
 import { Var } from './var.js';
 
-var types = [Number, Clause, Var];
+import {sugar, desugar} from './sugar.js';
+
 
 //since rules are self-modifying on call, etc, one should not
 //interact with rule objects directly.
@@ -32,16 +33,7 @@ export default function Rule(ruleSet, head, body){
     },
 
     apply(target, thisArg, terms){
-      target.head.terms = terms.map(term => {
-        for(let i = 0; i < types.length; i++){
-          let type = types[i];
-          let sugared = type.sugar(term);
-          if(sugared !== term){
-            return sugared;
-          }
-        }
-        return term;
-      });
+      target.head.terms = terms.map(term => desugar(me.ruleSet, term));
 
       return rule;
     }

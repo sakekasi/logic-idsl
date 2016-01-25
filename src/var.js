@@ -66,9 +66,13 @@ export class Var {
   }
 }
 
-Var.sugar = function(unsugared){
-  return unsugared;
+Var.desugar = function(ruleSet, sugared){
+  return sugared;
 }
+
+Var.sugar = function(ruleSet, unsugared){
+  return unsugared;
+};
 
 export function v(identifier: string): Var{
   return new Var(identifier);

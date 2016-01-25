@@ -59,6 +59,7 @@ export default function RuleSet(): Function {
       let newClause = ruleSet[identifier];
       let newRule = new Rule(ruleSet, newClause, [])
       me.rules.push(newRule);
+      me.ruleHeads.add(identifier);
 
       return newRule;
     }

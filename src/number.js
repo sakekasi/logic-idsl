@@ -51,9 +51,17 @@ export default function Number(number){
   return me;
 }
 
-Number.sugar = function(unsugared){
-  if( typeof unsugared === "number" ){
-    return new Number(unsugared);
+Number.desugar = function(ruleSet, sugared){
+  if( typeof sugared === "number" ){
+    return new Number(sugared);
+  } else {
+    return sugared;
+  }
+}
+
+Number.sugar = function(ruleSet, unsugared){
+  if( unsugared.type === "Number" ){
+    return unsugared.value;
   } else {
     return unsugared;
   }

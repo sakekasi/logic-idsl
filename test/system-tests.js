@@ -190,4 +190,69 @@ describe('Syntactic Operations', function(){
     assert.strictEqual(_.rules[0].ruleSet, _, "interned rule refers to ruleSet");
   });
 
+  it('desugars a Number to its value', function(){
+    with(_){
+      rule
+        .isNumber(5)
+      ;
+    }
+
+    var it = (()=>{with(_){
+      return query
+        .isNumber(X)
+      ;
+    }})();
+
+    var next = it.next();
+    assert.ok(!next.done, "the query returns a substitution");
+    assert.isDefined(next.value, "there is a substitution in the iterator");
+    assert.isNumber(next.value.get("X"), "the Number is desugared to a number");
+    assert.strictEqual(next.value.get("X"), 5);
+  });
+
+  it('[1,2,3,4,5] -> cons(1, cons(2, cons(3, cons(4, cons(5, NIL)))))', function(){
+    var test = _.test([1,2,3,4,5]);
+
+    assert.strictEqual(test.terms[0].type, "Clause", "test's term is a Clause");
+    assert.strictEqual(test.terms[0].identifier, "cons", "test's identifier is a cons");
+    assert.strictEqual(test.terms[0].toString(), "cons(1,cons(2,cons(3,cons(4,cons(5,nil())))))");
+  });
+
+  it('[H, rest(T)] -> cons(H, T)', function(){
+    var test = _.test([_.H, rest(_.T)]);
+
+    assert.strictEqual(test.terms[0].type, "Clause", "test's term is a Clause");
+    assert.strictEqual(test.terms[0].identifier, "cons", "test's identifier is a cons");
+    assert.strictEqual(test.terms[0].toString(), "cons(v(H),v(T))");
+  });
+
+  it('[1,2,3,Z, rest(Y)] -> cons(1, cons(2, cons(3, cons(Z, Y))))', function(){
+    var test = _.test([1,2,3,_.Z, rest(_.Y)]);
+
+    assert.strictEqual(test.terms[0].type, "Clause", "test's term is a Clause");
+    assert.strictEqual(test.terms[0].identifier, "cons", "test's identifier is a cons");
+    assert.strictEqual(test.terms[0].toString(), "cons(1,cons(2,cons(3,cons(v(Z),v(Y)))))");
+  });
+
+  it('desugars arrays to their original form', function(){
+    var arr = [1,2,3,4,5];
+    _.rule
+      .arr(arr)
+    ;
+
+    var it = _.query
+      .arr(_.X)
+    ;
+
+    var next = it.next();
+
+    assert.ok(!next.done, "query returns results");
+    assert.isArray(next.value.get("X"), "list desugared");
+    assert.strictEqual(arr.length, next.value.get("X").length, "input and output lists have the same length");
+
+    arr.forEach((v, i) =>{
+      assert.strictEqual(v, next.value.get("X")[i], `element ${i} is the same between lists`);
+    });
+  })
+
 });

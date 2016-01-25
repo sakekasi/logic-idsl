@@ -2,11 +2,11 @@ import { Map } from 'immutable';
 
 import Rule from './rule.js';
 import Clause from './clause.js';
-import { Var, Atom } from './var.js';
+import { Var } from './var.js';
 import Number from './number.js';
-import UnificationError from './unificationerror.js';
 
-var types = [Number, Clause, Var];
+import {sugar, desugar} from './sugar.js';
+import UnificationError from './unificationerror.js';
 
 export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Clause>){
   let me = function(){};
@@ -34,16 +34,7 @@ export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Claus
 
   me.addTerms = function(terms){
     let lastClause = me.q_clauses[me.q_clauses.length - 1];
-    lastClause.terms = terms.map(term => {
-      for(let i = 0; i < types.length; i++){
-        let type = types[i];
-        let sugared = type.sugar(term);
-        if(sugared !== term){
-          return sugared;
-        }
-      }
-      return term;
-    });
+    lastClause.terms = terms.map(term => desugar(me.ruleSet, term));
 
     me.makeProcessor();
   };
@@ -76,7 +67,9 @@ export default function SubstGenerator(ruleSet: RuleSet, ...clauses: Array<Claus
   me.next = function(){
     let nextSubst = me.processor.next();
     if(!nextSubst.done){ //remove intermediate variables
-      nextSubst.value = nextSubst.value.filter((_,k)=> k.charAt(0) !== "_");
+      nextSubst.value = nextSubst.value
+        .filter((_,k)=> k.charAt(0) !== "_")
+        .map((item) => sugar(me.ruleSet, item));
     }
     return nextSubst;
   };

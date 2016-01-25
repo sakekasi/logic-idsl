@@ -1,10 +1,6 @@
 import Rule from './rule.js';
 
-import Number from './number.js';
-import { Var } from './var.js';
-
-var types = [Number, Clause, Var];
-
+import {sugar, desugar, Rest} from './sugar.js';
 import UnificationError from './unificationerror.js';
 
 export default function Clause(ruleSet, identifier, terms){
@@ -20,16 +16,7 @@ export default function Clause(ruleSet, identifier, terms){
   var handler = {
     apply(target, thisArg, terms){
       // return new Clause(target.ruleSet, target.identifier, terms);
-      target.terms = terms.map(term => {
-        for(let i = 0; i < types.length; i++){
-          let type = types[i];
-          let sugared = type.sugar(term);
-          if(sugared !== term){
-            return sugared;
-          }
-        }
-        return term;
-      });
+      target.terms = terms.map((term) => desugar(ruleSet, term));
 
       return target;
     }
@@ -150,6 +137,55 @@ export default function Clause(ruleSet, identifier, terms){
   return clause;
 }
 
-Clause.sugar = function(unsugared){
+Clause.desugar = function(ruleSet, sugared){
+  if(Array.isArray(sugared)){
+    return arrayToCons(ruleSet, sugared);
+  }
+  return sugared;
+};
+
+Clause.sugar = function(ruleSet, unsugared){
+  if(unsugared.type === "Clause"){
+    if(unsugared.identifier === "cons"){
+      return consToArray(ruleSet, unsugared);
+    }
+  }
   return unsugared;
+};
+
+function arrayToCons(ruleSet, arr){
+  let internalArray = arr.slice(0);
+
+  if(internalArray.length === 0){
+    return ruleSet.nil;
+  }
+
+  let clause = internalArray.pop();
+  if(clause instanceof Rest){
+    clause = clause.value;
+  } else {
+    clause = ruleSet.cons(clause, ruleSet.nil);
+  }
+
+  while(internalArray.length > 0){
+    let item = desugar(ruleSet, internalArray.pop());
+    clause = ruleSet.cons(item, clause)
+  }
+
+  return clause;
+}
+
+function consToArray(ruleSet, clause){
+  let array = [];
+  let current = clause;
+  while(current.type === "Clause" && current.identifier === "cons"){
+    array.push(sugar(ruleSet, current.terms[0]));
+    current = current.terms[1];
+  }
+
+  if(!(current.type === "Clause" && current.identifier === "nil")){
+    array.push(sugar(ruleSet, current));
+  }
+
+  return array;
 }
