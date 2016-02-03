@@ -2,6 +2,10 @@ import Clause from './clause.js';
 import Rule from './rule.js';
 import SubstGenerator from './substgenerator.js';
 import { Var } from './var.js';
+import { rest } from './sugar.js';
+import Number from './number.js';
+import preamble from './preamble.js';
+
 
 //TODO: find some way to identify type of stuff
 
@@ -45,6 +49,39 @@ export default function RuleSet(): Function {
 
   ruleSet = new Proxy(me, handler);
 
+  //reserved stuff
+  let defaultReserved = {
+    rest,
+    Number,
+    Clause,
+    Var
+  };
+
+  let reservedHandler = {
+    has(target, identifier){
+      return true;
+    },
+
+    get(target, identifier){
+      if(target.hasOwnProperty(identifier)){
+        return target[identifier];
+      }
+
+      return ruleSet[identifier];
+    }
+  }
+
+  //this is really ugly TODO: explain
+  let reserved = function(overrides){
+    let scope = Object.assign({}, defaultReserved, overrides);
+    return new Proxy(scope, reservedHandler);
+  }
+
+  Object.assign(reserved, defaultReserved);
+
+
+  me.reserved = new Proxy(reserved, reservedHandler);
+
   let ruleHandler = {
     has(target, identifier){
       return true;
@@ -80,5 +117,7 @@ export default function RuleSet(): Function {
   }
 
   me.query = new Proxy({}, queryHandler);
+
+  preamble(ruleSet);
   return ruleSet;
 }

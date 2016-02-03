@@ -253,6 +253,87 @@ describe('Syntactic Operations', function(){
     arr.forEach((v, i) =>{
       assert.strictEqual(v, next.value.get("X")[i], `element ${i} is the same between lists`);
     });
-  })
+  });
+
+  it('allows for use of reserved keywords', function(){
+    with(_.reserved){
+      rule
+        .one([1, rest(nil)])
+      ;
+    }
+
+    var it = _.query
+      .one([1])
+    ;
+
+    var next = it.next();
+
+    assert.ok(!next.done, 'query returns results');
+  });
+
+  it('allows for passthrough of values (get)', function(){
+    var a = 35;
+
+    with(_.reserved({
+      a: a
+    })){
+      rule
+        .thirtyFive(a)
+      ;
+    }
+
+    var it = _.query
+      .thirtyFive(a)
+    ;
+
+    var next = it.next();
+
+    assert.ok(!next.done, 'query returns results');
+  });
+
+  //TODO: this semantics is ridiculous. numbers can't be changed, but objects can?
+  it('allows for passthrough of value (set)', function(){
+    var a = 35;
+    var b = {hi: "there"};
+
+    with(_.reserved({
+      a: a,
+      b: b
+    })){
+      a = 4;
+      b.hi = "world";
+    }
+
+    assert.strictEqual(a, 35);
+    assert.strictEqual(b.hi, "world");
+  });
+
+  it('has preamble predicates defined', function(){
+    var predicateNames = [
+      "true",
+      "fail",
+      "is",
+      "unify",
+      "eq",
+      "g", "ge",
+      "l", "le",
+
+      "isList",
+      "length",
+      "nth",
+      "has",
+      "remove",
+      "append",
+      "concat",
+      "push",
+      "pop"
+    ];
+
+    for(var i = 0; i < predicateNames.length; i++){
+      assert.ok(_.ruleHeads.has(predicateNames[i]),
+        "ruleSet has "+predicateNames.length;
+      )
+    }
+  });
 
 });

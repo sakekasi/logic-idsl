@@ -401,35 +401,39 @@ describe("Native Rules", function(){
   it('square', function(){
     console.log("square");
 
-    _.rule
-      .square(_.X, _.Y).if(function(subst, cont, X, Y){
-        if(X.type === "Number" && Y.type === "Number"){
-          return X.value * X.value === Y.value;
-        } else if(X.type === "Number" && Y.type === "Var"){
-          return Y.unify(new Number(
-            X.value * X.value
-          ), subst);
-        } else if(X.type === "Var" && Y.type === "Number"){
-          return X.unify(new Number(
-            Math.sqrt(Y.value)
-          ), subst);
-        } else if(X.type === "Var" && Y.type === "Var"){
-          return function*(subst){
-            var x = 0;
-            while(true){
-              yield Y.unify(
-                new Number(x*x),
-                X.unify(new Number(x), subst)
-              );
+    with(_.reserved({
+      Math
+    })){
+      rule
+        .square(X, Y).if(function(subst, cont, X, Y){
+          if(X.type === "Number" && Y.type === "Number"){
+            return X.value * X.value === Y.value;
+          } else if(X.type === "Number" && Y.type === "Var"){
+            return Y.unify(new Number(
+              X.value * X.value
+            ), subst);
+          } else if(X.type === "Var" && Y.type === "Number"){
+            return X.unify(new Number(
+              Math.sqrt(Y.value)
+            ), subst);
+          } else if(X.type === "Var" && Y.type === "Var"){
+            return function*(subst){
+              var x = 0;
+              while(true){
+                yield Y.unify(
+                  new Number(x*x),
+                  X.unify(new Number(x), subst)
+                );
 
-              x++;
-            }
-          };
-        }
+                x++;
+              }
+            };
+          }
 
-        return false;
-      })
-    ;
+          return false;
+        })
+      ;
+    }
 
     var it = (() => {with(_){
       return query
@@ -497,12 +501,14 @@ describe("Lists", function(){
   it('permutation', function(){
     console.log("permutation");
 
-    _.rule
-      .remove(_.H, [_.H, rest(_.T)], _.T)
-      .remove(_.H, [_.Y, rest(_.T)], [_.Y, rest(_.T1)]).if(
-        _.remove(_.H, _.T, _.T1)
-      )
-    ;
+    with(_.reserved){
+      rule
+        .remove(H, [H, rest(T)], T)
+        .remove(H, [Y, rest(T)], [Y, rest(T1)]).if(
+          remove(H, T, T1)
+        )
+      ;
+    }
 
     with(_){
       rule
@@ -512,13 +518,15 @@ describe("Lists", function(){
       ;
     }
 
-    _.rule
-      .permutation([], [])
-      .permutation([_.X, rest(_.L1)], _.Perm).if(
-        _.permutation(_.L1, _.L2),
-        _.insert(_.X, _.L2, _.Perm)
-      )
-    ;
+    with(_.reserved){
+      rule
+        .permutation([], [])
+        .permutation([X, rest(L1)], Perm).if(
+          permutation(L1, L2),
+          insert(X, L2, Perm)
+        )
+      ;
+    }
 
     var it = (()=>{with(_){
       return query
