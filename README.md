@@ -1,6 +1,6 @@
 # Logic IDSL
 
-This is an internal DSL (domain specific language) for JavaScript which enables prolog-like logic programming natively within JS. It was created as an extension of the log assignment in CS137A, Prototyping Programming Languages, offered at UCLA.
+This is an internal DSL (domain specific language) for JavaScript which enables prolog-like logic programming natively within JS. It was inspired by work done in CS137A, Prototyping Programming Languages, offered at UCLA.
 
 ## Quickstart
 
